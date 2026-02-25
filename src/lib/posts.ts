@@ -1,5 +1,24 @@
-// Content system: all posts are defined here with inline markdown.
-// In a real Astro/VPS setup, these would be loaded from the filesystem.
+/**
+ * Fuwari-style content system.
+ * 
+ * HOW TO ADD A POST:
+ * 1. Copy your entire .md file content (frontmatter + body) into the `markdownFiles` array below.
+ * 2. Give it a path like "writeups/my-post" or "blogs/my-post".
+ * 3. That's it. Frontmatter is auto-parsed, slug/reading-time/type are auto-generated.
+ *
+ * Frontmatter format (same as Fuwari):
+ * ---
+ * title: My Post Title
+ * published: 2024-08-05
+ * description: "Short description"
+ * image: "https://..." (optional)
+ * tags: ["tag1", "tag2"]
+ * category: Writeups
+ * draft: false
+ * ---
+ */
+
+import matter from "gray-matter";
 
 export interface PostFrontmatter {
   title: string;
@@ -17,7 +36,7 @@ export interface Post {
   frontmatter: PostFrontmatter;
   content: string;
   readingTime: number;
-  type: 'writeup' | 'blog';
+  type: "writeup" | "blog";
 }
 
 function estimateReadingTime(text: string): number {
@@ -25,20 +44,48 @@ function estimateReadingTime(text: string): number {
   return Math.max(1, Math.ceil(words / 200));
 }
 
-// Sample posts
-const rawPosts: { slug: string; frontmatter: PostFrontmatter; content: string }[] = [
+function parseMarkdown(path: string, raw: string): Post {
+  const { data, content } = matter(raw);
+
+  const frontmatter: PostFrontmatter = {
+    title: data.title || "Untitled",
+    published: data.published
+      ? new Date(data.published).toISOString().split("T")[0]
+      : "1970-01-01",
+    description: data.description || "",
+    image: data.image || "",
+    tags: Array.isArray(data.tags) ? data.tags : [],
+    category: data.category || "Uncategorized",
+    draft: data.draft ?? false,
+    lang: data.lang,
+  };
+
+  return {
+    slug: path,
+    frontmatter,
+    content: content.trim(),
+    readingTime: estimateReadingTime(content),
+    type: path.startsWith("writeups/") ? "writeup" : "blog",
+  };
+}
+
+// ─────────────────────────────────────────────
+// ✏️  ADD YOUR MARKDOWN FILES HERE
+//     Just paste the full .md content (with ---)
+// ─────────────────────────────────────────────
+const markdownFiles: { path: string; raw: string }[] = [
   {
-    slug: "writeups/htb-greenhorn",
-    frontmatter: {
-      title: "HTB Greenhorn — Full Walkthrough",
-      published: "2025-12-15",
-      description: "A complete walkthrough of the HackTheBox Greenhorn machine covering initial enumeration, web exploitation, and privilege escalation via misconfigured SUID binaries.",
-      image: "",
-      tags: ["HTB", "Linux", "Web", "Privesc"],
-      category: "Writeups",
-      draft: false,
-    },
-    content: `## Reconnaissance
+    path: "writeups/htb-greenhorn",
+    raw: `---
+title: HTB Greenhorn — Full Walkthrough
+published: 2025-12-15
+description: "A complete walkthrough of the HackTheBox Greenhorn machine covering initial enumeration, web exploitation, and privilege escalation via misconfigured SUID binaries."
+tags: ["HTB", "Linux", "Web", "Privesc"]
+category: Writeups
+draft: false
+---
+
+## Reconnaissance
 
 We start with a full nmap scan to discover open ports and services.
 
@@ -111,19 +158,21 @@ flag{h4ckv3rs3_gr33nh0rn_pwn3d}
 `,
   },
   {
-    slug: "writeups/thm-agent-sudo",
-    frontmatter: {
-      title: "THM Agent Sudo — Steganography & Sudo Exploit",
-      published: "2025-11-28",
-      description: "TryHackMe Agent Sudo room: user-agent manipulation, steganography extraction, zip cracking, and sudo CVE exploitation for root.",
-      image: "",
-      tags: ["THM", "Linux", "Stego", "CVE"],
-      category: "Writeups",
-      draft: false,
-    },
-    content: `## Introduction
+    path: "writeups/thm-agent-sudo",
+    raw: `---
+title: THM Agent Sudo — Steganography & Sudo Exploit
+published: 2025-11-28
+description: "TryHackMe Agent Sudo room: user-agent manipulation, steganography extraction, zip cracking, and sudo CVE exploitation for root."
+tags: ["THM", "Linux", "Stego", "CVE"]
+category: Writeups
+draft: false
+---
+
+## Introduction
 
 Agent Sudo is a beginner-friendly TryHackMe room that covers a variety of techniques including user-agent spoofing, steganography, and a sudo CVE.
+
+![](https://tryhackme-images.s3.amazonaws.com/room-icons/53d3c28c1af197142685ceb238d5ce3c.png)
 
 ## Enumeration
 
@@ -184,17 +233,17 @@ whoami
 `,
   },
   {
-    slug: "writeups/htb-shocker",
-    frontmatter: {
-      title: "HTB Shocker — Shellshock to Root",
-      published: "2025-10-05",
-      description: "Exploiting the classic Shellshock vulnerability (CVE-2014-6271) on HackTheBox Shocker machine. CGI enumeration, Bash exploitation, and sudo perl privesc.",
-      image: "",
-      tags: ["HTB", "Linux", "Web", "Shellshock"],
-      category: "Writeups",
-      draft: false,
-    },
-    content: `## Overview
+    path: "writeups/htb-shocker",
+    raw: `---
+title: HTB Shocker — Shellshock to Root
+published: 2025-10-05
+description: "Exploiting the classic Shellshock vulnerability (CVE-2014-6271) on HackTheBox Shocker machine. CGI enumeration, Bash exploitation, and sudo perl privesc."
+tags: ["HTB", "Linux", "Web", "Shellshock"]
+category: Writeups
+draft: false
+---
+
+## Overview
 
 Shocker is a classic HTB machine that demonstrates the infamous Shellshock vulnerability. Difficulty: Easy.
 
@@ -267,17 +316,17 @@ And we're root! 🎉
 `,
   },
   {
-    slug: "blogs/why-i-love-linux",
-    frontmatter: {
-      title: "Why I Love Linux (And You Should Too)",
-      published: "2025-12-01",
-      description: "A love letter to the Linux operating system — from customization to security, here's why every cybersecurity enthusiast should embrace the penguin.",
-      image: "",
-      tags: ["Linux", "Opinion", "Beginner"],
-      category: "Blogs",
-      draft: false,
-    },
-    content: `## The Penguin Life
+    path: "blogs/why-i-love-linux",
+    raw: `---
+title: Why I Love Linux (And You Should Too)
+published: 2025-12-01
+description: "A love letter to the Linux operating system — from customization to security, here's why every cybersecurity enthusiast should embrace the penguin."
+tags: ["Linux", "Opinion", "Beginner"]
+category: Blogs
+draft: false
+---
+
+## The Penguin Life
 
 I've been using Linux for over five years now, and I can confidently say it has fundamentally changed how I think about computers, security, and software.
 
@@ -328,17 +377,17 @@ If you haven't tried Linux yet, spin up a VM this weekend. Install Arch if you'r
 `,
   },
   {
-    slug: "blogs/ctf-beginner-guide",
-    frontmatter: {
-      title: "The Complete Beginner's Guide to CTFs",
-      published: "2025-11-15",
-      description: "Everything you need to know to start your Capture The Flag journey: platforms, tools, mindset, and your first challenge walkthrough.",
-      image: "",
-      tags: ["CTF", "Beginner", "Guide"],
-      category: "Blogs",
-      draft: false,
-    },
-    content: `## What Are CTFs?
+    path: "blogs/ctf-beginner-guide",
+    raw: `---
+title: The Complete Beginner's Guide to CTFs
+published: 2025-11-15
+description: "Everything you need to know to start your Capture The Flag journey: platforms, tools, mindset, and your first challenge walkthrough."
+tags: ["CTF", "Beginner", "Guide"]
+category: Blogs
+draft: false
+---
+
+## What Are CTFs?
 
 Capture The Flag (CTF) competitions are cybersecurity challenges where you solve puzzles to find hidden "flags" — usually strings like \`flag{s0m3th1ng_h3r3}\`.
 
@@ -400,17 +449,17 @@ CTFs are the most fun way to learn cybersecurity. Start easy, stay consistent, a
 `,
   },
   {
-    slug: "blogs/building-home-lab",
-    frontmatter: {
-      title: "Building Your First Cybersecurity Home Lab",
-      published: "2025-10-20",
-      description: "A practical guide to setting up a home lab for pentesting practice, malware analysis, and network security experiments on a budget.",
-      image: "",
-      tags: ["Lab", "Networking", "Beginner", "Tools"],
-      category: "Blogs",
-      draft: false,
-    },
-    content: `## Why a Home Lab?
+    path: "blogs/building-home-lab",
+    raw: `---
+title: Building Your First Cybersecurity Home Lab
+published: 2025-10-20
+description: "A practical guide to setting up a home lab for pentesting practice, malware analysis, and network security experiments on a budget."
+tags: ["Lab", "Networking", "Beginner", "Tools"]
+category: Blogs
+draft: false
+---
+
+## Why a Home Lab?
 
 A home lab gives you a safe, legal environment to practice offensive and defensive security techniques. It's the single best investment you can make in your cybersecurity education.
 
@@ -486,12 +535,12 @@ You don't need a server rack to start learning. A single machine with enough RAM
   },
 ];
 
-// Build posts with reading time
-export const posts: Post[] = rawPosts.map((p) => ({
-  ...p,
-  readingTime: estimateReadingTime(p.content),
-  type: p.slug.startsWith("writeups/") ? "writeup" : "blog",
-}));
+// ─────────────────────────────────────────────
+// Build posts array (auto-parsed from raw markdown)
+// ─────────────────────────────────────────────
+export const posts: Post[] = markdownFiles
+  .map((f) => parseMarkdown(f.path, f.raw))
+  .filter((p) => !p.frontmatter.draft);
 
 export function getPostBySlug(slug: string): Post | undefined {
   return posts.find((p) => p.slug === slug);
@@ -511,7 +560,9 @@ export function getAllCategories(): string[] {
 
 export function getAdjacentPosts(slug: string): { prev: Post | null; next: Post | null } {
   const sorted = [...posts].sort(
-    (a, b) => new Date(b.frontmatter.published).getTime() - new Date(a.frontmatter.published).getTime()
+    (a, b) =>
+      new Date(b.frontmatter.published).getTime() -
+      new Date(a.frontmatter.published).getTime()
   );
   const idx = sorted.findIndex((p) => p.slug === slug);
   return {
