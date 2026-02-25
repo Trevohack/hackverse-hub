@@ -18,8 +18,6 @@
  * ---
  */
 
-import matter from "gray-matter";
-
 export interface PostFrontmatter {
   title: string;
   published: string;
@@ -44,8 +42,44 @@ function estimateReadingTime(text: string): number {
   return Math.max(1, Math.ceil(words / 200));
 }
 
+/** Simple browser-safe frontmatter parser (no Node dependencies) */
+function parseFrontmatter(raw: string): { data: Record<string, any>; content: string } {
+  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
+  if (!match) return { data: {}, content: raw };
+
+  const yamlBlock = match[1];
+  const content = match[2];
+  const data: Record<string, any> = {};
+
+  for (const line of yamlBlock.split("\n")) {
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+    const key = line.slice(0, idx).trim();
+    let val: any = line.slice(idx + 1).trim();
+
+    // Remove surrounding quotes
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    // Parse booleans
+    if (val === "true") val = true;
+    else if (val === "false") val = false;
+    // Parse arrays like ["a", "b"]
+    else if (val.startsWith("[") && val.endsWith("]")) {
+      try {
+        val = JSON.parse(val);
+      } catch {
+        val = val.slice(1, -1).split(",").map((s: string) => s.trim().replace(/^["']|["']$/g, ""));
+      }
+    }
+    data[key] = val;
+  }
+
+  return { data, content };
+}
+
 function parseMarkdown(path: string, raw: string): Post {
-  const { data, content } = matter(raw);
+  const { data, content } = parseFrontmatter(raw);
 
   const frontmatter: PostFrontmatter = {
     title: data.title || "Untitled",
