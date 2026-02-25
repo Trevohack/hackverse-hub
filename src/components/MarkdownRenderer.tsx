@@ -62,6 +62,18 @@ function BlockquoteRenderer({ children }: any) {
   );
 }
 
+function ImageRenderer({ src, alt, ...props }: any) {
+  return (
+    <img
+      src={src}
+      alt={alt || ""}
+      loading="lazy"
+      className="rounded-lg max-w-full h-auto my-4 border border-border/30"
+      {...props}
+    />
+  );
+}
+
 export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
   return (
     <div className="prose-hackverse">
@@ -71,6 +83,7 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
         components={{
           code: CodeBlock,
           blockquote: BlockquoteRenderer,
+          img: ImageRenderer,
         }}
       >
         {content}
