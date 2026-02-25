@@ -27,13 +27,21 @@ export default function PostCard({ post, index = 0 }: PostCardProps) {
         className="group block glass-panel rounded-2xl overflow-hidden hover:glow-cyan transition-all duration-300 hover:border-primary/30"
       >
         {/* Cover image area */}
-        <div className="h-40 bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center relative overflow-hidden">
+        <div className="h-40 relative overflow-hidden">
+          {frontmatter.image ? (
+            <img
+              src={frontmatter.image}
+              alt={frontmatter.title}
+              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-accent/10" />
+          )}
           <div className="absolute inset-0 bg-grid opacity-30" />
-          <span className="text-4xl font-bold text-primary/20 font-mono select-none">
+          <span className="absolute bottom-3 left-3 text-4xl font-bold text-primary/20 font-mono select-none">
             {type === "writeup" ? ">" : "#"}_
           </span>
-          {/* Category badge */}
-          <span className="absolute top-3 right-3 text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+          <span className="absolute top-3 right-3 text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 backdrop-blur-sm">
             {frontmatter.category}
           </span>
         </div>
